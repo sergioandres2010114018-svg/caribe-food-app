@@ -1,0 +1,35 @@
+name: caribe_food
+description: "CaribeFood App — El sabor del Caribe en tu cocina. Recetas tradicionales del Caribe colombiano."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.3.0
+  cached_network_image: ^3.4.1
+  video_player: ^2.9.0
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/images/icono.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0E3B5C"
+  adaptive_icon_foreground: "assets/images/icono_frente.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/data/
+    - assets/images/
