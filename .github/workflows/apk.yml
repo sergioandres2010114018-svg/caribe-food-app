@@ -1,0 +1,76 @@
+# Compila automáticamente el APK de CaribeFood cada vez que se sube código
+# a la rama main (o manualmente desde la pestaña "Actions" > "Run workflow").
+# El APK queda en: pestaña "Releases" del repositorio (y en "Actions" > Artifacts).
+name: Generar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Flutter (estable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Crear archivos de Android que falten
+        run: |
+          flutter --version
+          flutter create --platforms=android --org co.edu.pijino --project-name caribe_food .
+          # Asegura el permiso de internet aunque el manifiesto se haya regenerado
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || \
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+
+      - name: Descargar paquetes
+        run: flutter pub get
+
+      - name: Generar ícono de la app
+        run: dart run flutter_launcher_icons
+
+      - name: Pruebas
+        run: flutter test
+
+      - name: Compilar APK
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+          mkdir -p salida
+          cp build/app/outputs/flutter-apk/app-release.apk salida/CaribeFood.apk
+          ls -lh salida
+
+      - name: Guardar APK (Actions > Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CaribeFood-apk
+          path: salida/CaribeFood.apk
+
+      - name: Publicar APK en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: CaribeFood v1.0.${{ github.run_number }}
+          body: |
+            APK generado automáticamente.
+            Descarga **CaribeFood.apk**, ábrelo en tu Android y permite "instalar apps de origen desconocido".
+          files: salida/CaribeFood.apk
